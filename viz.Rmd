@@ -22,7 +22,7 @@ anim <- df %>%
   labs(title = "{round(frame_along)}") +
   theme_light() +
   transition_reveal(Year) +
-  ease_aes("cubic-out") +
+  ease_aes("expo-out") +
   theme(
     axis.line = element_blank(),
     axis.ticks = element_blank(),
@@ -35,7 +35,7 @@ anim <- df %>%
     title = element_text(colour="#fafaff")
   )
 
-animate(anim, duration = 2.5, fps = 20, width = 460, height = 320, renderer = gifski_renderer())
+animate(anim, duration = 1.5, fps = 30, width = 460, height = 320, renderer = gifski_renderer())
 anim_save("output.gif")
 ```
 
