@@ -35,8 +35,8 @@ anim <- df %>%
     title = element_text(colour="#fafaff")
   )
 
-animate(anim, duration = 1.5, fps = 30, width = 460, height = 320, renderer = gifski_renderer())
-anim_save("output.gif")
+animate(anim, duration = 1, fps = 30, width = 460, height = 320, renderer = gifski_renderer())
+anim_save("output2.gif")
 ```
 
 
