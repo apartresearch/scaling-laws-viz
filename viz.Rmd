@@ -1,0 +1,42 @@
+---
+author: "Esben Kran"
+date: "Monday July 4 2022"
+---
+
+```{r}
+library(pacman)
+pacman::p_load(tidyverse, ggplot2, gganimate, transformr, gifski)
+```
+
+```{r}
+df <- read_csv("temporal_data.csv") %>%
+  drop_na(Parameters, Year) %>% 
+  filter(Parameters > 0 & Parameters < 5e11 & Year > 2012) %>% 
+  mutate(Year = jitter(Year, 2.5),
+         Parameters = jitter(Parameters, 250))
+
+anim <- df %>%
+  ggplot() +
+  aes(Year, Parameters) +
+  geom_point(aes(group = seq_along(Year)), colour="#434dc0", fill="#434dc055", pch=21, size=3.5) +
+  labs(title = "{round(frame_along)}") +
+  theme_light() +
+  transition_reveal(Year) +
+  ease_aes("cubic-out") +
+  theme(
+    axis.line = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    plot.background = element_rect(fill="#121f2b"),
+    panel.background = element_rect(fill="#121f2b"),
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    title = element_text(colour="#fafaff")
+  )
+
+animate(anim, duration = 2.5, fps = 20, width = 460, height = 320, renderer = gifski_renderer())
+anim_save("output.gif")
+```
+
+
