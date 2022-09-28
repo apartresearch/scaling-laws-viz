@@ -12,14 +12,14 @@ pacman::p_load(tidyverse, ggplot2, gganimate, transformr, gifski, scales, ggrepe
 df <- read_csv("temporal_data.csv") %>%
   drop_na(Parameters, Year) %>% 
   filter(Parameters > 0 & Parameters < 5e11 & Year > 2012) %>% 
-  mutate(Year = jitter(Year, 2.5),
+  mutate(Year_shift = jitter(Year, 2.5),
          Parameters = jitter(Parameters, 250))
 
 anim <- df %>%
   ggplot() +
-  aes(Year, Parameters) +
+  aes(Year_shift, Parameters) +
   geom_point(aes(group = seq_along(Year)), colour="#434dc0", fill="#434dc055", pch=21, size=3.5) +
-  labs(title = "{round(frame_along)}") +
+  labs(title = "{round(max(as.list(df[df$Year==frame_along, 'Parameters']$Parameters), na.rm=TRUE))}") +
   theme_light() +
   transition_reveal(Year) +
   ease_aes("expo-out") +
@@ -43,6 +43,7 @@ anim_save("output2.gif")
 cbPalette <- c("#121f2b", "#E6AF00", "#56B4E9", "#009E73", "#D0A422", "#0072B2", "#D55E00", "#CC79A7")
 safe_colorblind_palette <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
                              "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
+
 theme_aisafety <-
   theme_light() +
   theme(
@@ -55,10 +56,11 @@ theme_aisafety <-
     panel.grid = element_blank(),
     panel.grid.major.y = element_line(colour="#121f2b44", linetype="dotted"),
     panel.border = element_blank(),
-    title = element_text(colour="#121f2b"),
     legend.position="none",
     plot.margin = unit(c(0.1,2.3,0.1,0.1), "cm"),
-    plot.caption = element_text(colour="#00000044")
+    plot.caption = element_text(colour="#00000044"),
+    text = element_text(size=14),
+    title = element_text(colour="#121f2b", size=11),
   )
 
 continents <- c("Asia", "Oceania", "Europe", "Americas", "World", "Africa")
@@ -76,42 +78,99 @@ p1 <- df %>%
   aes(Year, `Life expectancy`, color=Entity, label=Label) +
   geom_line(size=1) +
   geom_point(size=0.7) +
-  geom_text_repel(nudge_x=10,xlim=c(-Inf,Inf),hjust="left",direction = "y",segment.curvature = -0.1,
-    segment.ncp = 3,
+  geom_text_repel(nudge_x=10,xlim=c(-Inf,Inf),ylim=c(-Inf, 83), hjust="left",direction = "y",segment.curvature = -0.1,
+    segment.ncp = 2,
     segment.angle = 20,
     segment.square=T,
     segment.alpha=0.2) +
   theme_aisafety +
   scale_color_manual(values=safe_colorblind_palette) +
-  labs(color=NULL, y=NULL, x=NULL,
+  theme(
+    plot.margin = unit(c(0.4,2.3,0.1,0.1), "cm")) +
+  labs(color=NULL, y=NULL, x=NULL, title="Life expectancy",
        caption="OurWorldInData.org/life-expectancy, CC-BY") +
   coord_cartesian(expand=F, clip="off") +
-  scale_y_continuous(labels=function(x) paste0(x," years"))
+  scale_y_continuous(labels=function(x) paste0(x," years"), breaks=c(seq(0,70,10), 78)) +
+  scale_x_continuous(breaks=c(1775, 1825, 1875, 1925, 1975, 2019))
 
 p2 <- read_csv("world-gdp-over-the-last-two-millennia.csv") %>% 
   filter(Entity %in% continents) %>% 
   mutate(Label=if_else(Year==2019, Entity, NA_character_)) %>% 
   ggplot() +
-  aes(Year, `World GDP in 2011 Int.$ (OWID based on World Bank & Maddison (2017))`, color=Entity, label=Label) +
-  geom_line(size=1) +
-  geom_point(size=0.7) +
+  aes(Year, `World GDP in 2011 Int.$ (OWID based on World Bank & Maddison (2017))`, label=Label) +
+  geom_line(size=1, color="#AA4499") +
+  geom_point(size=0.7, color="#AA4499") +
   theme_aisafety +
   scale_color_manual(values=safe_colorblind_palette) +
-  labs(color=NULL, y=NULL, x=NULL,
+  labs(color=NULL, y=NULL, x=NULL, title="World GDP",
        caption="OurWorldInData.org/economic-growth, CC-BY") +
   coord_cartesian(expand=F, clip="on", xlim=c(1499, 2020)) +
   scale_y_continuous(labels=function(x) paste0("$", x/1000000000000," trillion")) +
-  theme(plot.margin=unit(c(0.1,0.4,0.1,0.1), "cm"))
+  theme(plot.margin=unit(c(0.4,0.4,0.1,0.1), "cm")) +
+  scale_x_continuous(breaks=c(1500, 1625, 1750, 1875, 2019))
 
-p3 <- grid.arrange(p2,p1, nrow=1, widths=c(0.4,0.6))
+p3 <- grid.arrange(p2, p1, nrow=1, widths=c(0.4,0.6))
 
-ggsave(file="life-expectancy.svg", plot=p3, width=600, height=200, units="px", dpi=72)
+ggsave(file="life-expectancy.svg", plot=p1, width=350, height=200, units="px", dpi=72)
+ggsave(file="world-gdp.svg", plot=p2, width=250, height=200, units="px", dpi=72)
 
 ```
 
 
+```{r}
+p4 <- read_csv("annual-co2-emissions-per-country.csv") %>% 
+  filter(Entity %in% c("World")) %>% 
+  mutate(Label=if_else(Year==2020, Entity, NA_character_)) %>% 
+  ggplot() +
+  aes(Year, `Annual CO2 emissions`, label=Label) +
+  geom_line(size=1, color="#AA4499") +
+  geom_point(size=0.7, color="#AA4499") +
+  geom_text_repel(nudge_x=10,xlim=c(-Inf,Inf),hjust="left",direction = "y",segment.curvature = -0.1,
+    segment.ncp = 2,
+    segment.angle = 20,
+    segment.square=T,
+    segment.alpha=0.2,
+    colour="#AA4499") +  theme_aisafety +
+  theme(axis.line.x = element_line(colour="#121f2b44")) +
+  theme(plot.margin=unit(c(0.1,02.5,0.1,0.1), "cm")) +
+  scale_color_manual(values=safe_colorblind_palette) +
+  labs(color=NULL, y=NULL, x=NULL, title="Global carbon emissions",
+       caption="OurWorldInData.org, CC-BY") +
+  coord_cartesian(expand=F, clip="off") +
+  scale_y_continuous(labels=function(x) paste0("", x/1000000000," billion t"), breaks=seq(0, 40000000000, 5000000000)) +
+  scale_x_continuous(breaks=c(1750, 1790, 1830, 1870, 1910, 1950, 1990, 2019))
 
+ggsave(file="co2-output.svg", plot=p4, width=400, height=200, units="px", dpi=72)
 
+```
+
+```{r}
+p5 <- read_csv("transistors-per-microprocessor.csv") %>% 
+  filter(Entity %in% c("World")) %>% 
+  mutate(Label=if_else(Year==2017, paste0(as.character(`Transistors per microprocessor` / 1000000000), " billion"), NA_character_)) %>% 
+  ggplot() +
+  aes(Year, `Transistors per microprocessor`, label=Label) +
+  geom_text_repel(color="#AA4499",nudge_x=1,xlim=c(-Inf,Inf), ylim=c(-Inf, Inf), hjust="left",direction = "y",segment.curvature = -0.1,
+    segment.ncp = 2,
+    segment.angle = 20,
+    segment.square=T,
+    segment.alpha=0.2) +
+  geom_line(size=1,color="#AA4499") +
+  geom_point(size=0.7,color="#AA4499") +
+  theme_aisafety +
+  theme(plot.margin=unit(c(0.4,2.2,0.1,0.1), "cm")) +
+  scale_color_manual(values=safe_colorblind_palette) +
+  labs(color=NULL, y=NULL, x=NULL, title="Amount of transistors on microprocessors",
+       caption="R: Karl Rupp, 40 Years of Microprocessor Trend Data") +
+  coord_cartesian(expand=F, clip="off") +
+  scale_y_log10(breaks=scales::trans_breaks("log10", function(x) 10^x),
+                labels=trans_format("log10", math_format(10^.x))) +
+  annotation_logticks(colour="#121f2b",alpha=0.3) +
+  scale_x_continuous(breaks=c(1971, 1980, 1990, 2000, 2010, 2017))
+p5
+ggsave(file="moores-law.svg", plot=p5, width=400, height=200, units="px", dpi=72)
+
+```
 
 
 
